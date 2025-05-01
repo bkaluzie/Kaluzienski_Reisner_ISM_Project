@@ -61,4 +61,8 @@ class SetupBondiParker(setup_base.Setup):
     
     # ---------------------------------------------------------------------------------------------
     
-    
+    def boundaryConditions(self, sim):
+        
+        # stuff here
+        
+        return
