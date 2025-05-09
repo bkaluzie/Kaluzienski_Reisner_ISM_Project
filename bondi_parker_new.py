@@ -42,44 +42,18 @@ class SetupBondiParker(setup_base.Setup):
         
         setup_base.Setup.__init__(self, unit_l = unit_l, unit_t = unit_t, unit_m = unit_m)
         
-        self.gamma = 7.0 / 5.0
+        self.gamma = 5.0 / 3.0
         self.g = 1.0
-    
-        self.r_B = 0.5 # define the sonic radius
-        
-        self.cs_inf = np.sqrt((5.0 - 3.0 * self.gamma) / (4.0 * self.r_B))
-        self.rho_inf = 1.0
-        self.P_inf = self.cs_inf * self.rho_inf / self.gamma
-        
-        self.rho_B = self.rho_inf * (2 / (5 - 3*self.gamma))**(1 / (self.gamma - 1))
-        self.P_B = self.P_inf  * (self.rho_B / self.rho_inf)**self.gamma
-        self.cs_B = self.cs_inf * np.sqrt(2 / (5 - 3*self.gamma))
-        
-        self.Mdot = -((np.pi * self.rho_inf) / self.cs_inf**3) * (2 / (5 - 3 * self.gamma))**((5 - 3*self.gamma) / (2*self.gamma - 2))
-        
-        
-        '''
         self.rho_inf = 1.0
         self.P_inf = 1.0
-        self.g = 1.0
-        self.gamma = 7.0 / 5.0
-        
         self.cs_inf = np.sqrt(self.gamma * self.P_inf / self.rho_inf)
-        
-        # define bondi radius quantities
-        self.r_B = (5 - 3 * self.gamma) / (4 * self.cs_inf**2)
-        self.rho_B = self.rho_inf * (2 / (5 - 3*self.gamma))**(1 / (self.gamma - 1))
-        self.cs_B = self.cs_inf * np.sqrt(2 / (5 - 3*self.gamma))
-        
-        self.Mdot = ((np.pi * self.rho_inf) / self.cs_inf**3) * (2 / (5 - 3 * self.gamma))**((5 - 3*self.gamma) / (2*self.gamma - 2))
-        '''
         
         return
     
     # ---------------------------------------------------------------------------------------------
     def shortName(self):
         
-        return 'bondi_parker_1d'
+        return 'bondi_parker'
 
     # ---------------------------------------------------------------------------------------------
     
@@ -91,7 +65,7 @@ class SetupBondiParker(setup_base.Setup):
     
     def setInitialConditions(self, sim, nx):
 
-        sim.setEquationOfState(eos_mode = 'ideal', gamma = self.gamma)
+        sim.setEquationOfState(eos_mode = 'ideal', gamma = self.gamma, pressure_floor = 0.01)
         sim.setGravityMode(gravity_mode = 'fixed_pot', g = self.g)
         sim.setDomain(nx, nx, xmin = -1.0, xmax = 1.0, ymin = -1.0, bc_type = 'outflow')
             
@@ -109,17 +83,17 @@ class SetupBondiParker(setup_base.Setup):
         sim.V[VX] = 0.0
         sim.V[VY] = 0.0
         
-        sim.V[GP] = -0.1 / (0.01 + r)
+        sim.V[GP] = -0.1 / (0.01 + r) # potential from TDE setup
 
         return
     
     # ---------------------------------------------------------------------------------------------
-    
+    '''
     def u(self, sim, r):
         cs_r = sim.soundSpeed(sim.V)
         
         return (self.Mdot / (4.0 * np.pi * r**2)) * (cs_r / self.cs_inf)**(-2 / (self.gamma - 1.0))
-    
+    '''
     # ---------------------------------------------------------------------------------------------
     
     def updateFunction(self, sim):
@@ -132,11 +106,15 @@ class SetupBondiParker(setup_base.Setup):
         V_x = V_rad * np.cos(phi)
         V_y = V_rad * np.sin(phi)
         
-        sigma = 5.0 / sim.xmax
+        sigma = 5.0 / sim.xhi
         
-        sim.V[sim.DN] = self.rho_inf + 1.0 * np.exp(-0.5 * r**2 / sigma**2) # gaussian density profile
-        sim.V[sim.VX, -5:5, -5:5] = V_x
-        sim.V[sim.VY, -5:5, -5:5] = V_y
+        zero_ind = int((sim.xhi + sim.xlo) / 2)
+        
+        rho_0 = sim.V[sim.DN, zero_ind + 6, zero_ind + 6]
+        
+        sim.V[sim.DN, zero_ind-5:zero_ind+5, zero_ind-5:zero_ind+5] = rho_0 + 1.0 * np.exp(- 0.5 * r**2 / sigma**2)[zero_ind-5:zero_ind+5, zero_ind-5:zero_ind+5] # gaussian density profile on top of whatever's there
+        sim.V[sim.VX, zero_ind-5:zero_ind+5, zero_ind-5:zero_ind+5] = V_x[zero_ind-5:zero_ind+5, zero_ind-5:zero_ind+5]
+        sim.V[sim.VY, zero_ind-5:zero_ind+5, zero_ind-5:zero_ind+5] = V_y[zero_ind-5:zero_ind+5, zero_ind-5:zero_ind+5]
         
         sim.primitiveToConserved(sim.V, sim.U)
         
@@ -190,18 +168,16 @@ class SetupBondiParker(setup_base.Setup):
         
 # ---------------------------------------------------------------------------------------------
 
+'''
 def sonicSolutions():
-    r_B = 0.5 # define the sonic radius
-    gamma = 7.0 / 5.0
+    gamma = 5.0 / 3.0
     
-    cs_inf = np.sqrt((5.0 - 3.0 * gamma) / (4.0 * r_B))
     rho_inf = 1.0
-    P_inf = cs_inf * rho_inf / gamma
+    P_inf = 1.0
+    cs_inf = np.sqrt(gamma * P_inf / rho_inf)
     
-    rho_B = rho_inf * (2 / (5 - 3*gamma))**(1 / (gamma - 1))
-    P_B = P_inf  * (rho_B / rho_inf)**gamma
-    cs_B = cs_inf * np.sqrt(2 / (5 - 3*gamma))
-    
+    q = 1/4 # for gamma = 5/3
+
     return r_B, rho_B, P_B, cs_B
     
 
@@ -221,12 +197,11 @@ def plotCallback(sim, fig, panels, plot_type):
     panels[2].set_ylabel('$v_r$ (CU)')
     
     return
-
+'''
 # ---------------------------------------------------------------------------------------------
 
 def runBondi():
     setup = SetupBondiParker()
-    ulula_run.run(setup, tmax = 5, nx = 200, q_plot = ['DN', 'PR', 'VR'], 
-                  plot_time = 0.5, save_plots = False, plot_callback_func = plotCallback, 
-                  plot_1d = True, plot_2d = False, plot_geometry = 'radius')
+    ulula_run.run(setup, tmax = 15, nx = 200, q_plot = ['DN', 'PR', 'VR'], 
+                  movie = True, movie_file_ext = 'gif')
     return
