@@ -133,33 +133,6 @@ class SetupParker(setup_base.Setup):
         sim.primitiveToConserved(sim.V, sim.U)
         
         return
-
-    '''
-    def updateFunction(self, sim):
-        
-        x, y = sim.xyGrid()
-        r = np.sqrt(x**2 + y**2)
-        phi = np.arctan2(y, x)
-        
-        V_r = 5.0 # inject some radial velocity
-        
-        V_x = V_r * np.cos(phi)
-        V_y = V_r * np.sin(phi)
-        
-        sigma = 5.0 / sim.xhi
-        
-        zero_ind = int((sim.xhi + sim.xlo) / 2) + 1
-        
-        rho_0 = sim.V[sim.DN, zero_ind+5, zero_ind+5]
-        
-        sim.V[sim.DN, zero_ind-4:zero_ind+4, zero_ind-4:zero_ind+4] = self.rho_inf + 5.0 * np.exp(- 0.5 * r**2 / sigma**2)[zero_ind-4:zero_ind+4, zero_ind-4:zero_ind+4] # gaussian density profile on top of whatever's there
-        sim.V[sim.VX, zero_ind-4:zero_ind+4, zero_ind-4:zero_ind+4] = V_x[zero_ind-4:zero_ind+4, zero_ind-4:zero_ind+4]
-        sim.V[sim.VY, zero_ind-4:zero_ind+4, zero_ind-4:zero_ind+4] = V_y[zero_ind-4:zero_ind+4, zero_ind-4:zero_ind+4]
-        
-        sim.primitiveToConserved(sim.V, sim.U)
-        
-        return
-    '''
     
     # ---------------------------------------------------------------------------------------------
     
