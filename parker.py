@@ -61,7 +61,7 @@ class SetupParker(setup_base.Setup):
     
     def setInitialConditions(self, sim, nx):
 
-        sim.setEquationOfState(eos_mode = 'ideal', gamma = self.gamma, pressure_floor = 0.01)
+        sim.setEquationOfState(eos_mode = 'ideal', gamma = self.gamma, pressure_floor = 1E-10)
         sim.setGravityMode(gravity_mode = 'fixed_pot')
         sim.setDomain(nx, nx, xmin = -1.0, xmax = 1.0, ymin = -1.0, bc_type = 'outflow')
             
